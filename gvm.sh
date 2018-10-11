@@ -200,12 +200,12 @@ gvm_install() {
             # remove partially downloaded tarball, in case of failure
             command rm -rf "${cache_dir}/${artifact_name}"
             gvm_err "Binary download from ${download_link} failed."
-            exit 1
+            exit 0
         )
     fi
 
     # compute checksum
-    gvm_compute_checksum "${artifact_name}"
+    gvm_compute_checksum "${cache_dir}/${artifact_name}"
 
     # extract tarball at required path
     local version_path="$(gvm_version_path "${version}")"
@@ -215,10 +215,29 @@ gvm_install() {
 
     # use the version
     gvm use "${version}"
+
+    gvm_echo "go ${version} has been installed successfully."
 }
 
 gvm_uninstall() {
-    gvm_echo "uninstall" 
+    if [ $# -lt 1 ]; then
+        gvm_err 'Please provide a version to uninstall.'
+        return 1
+    fi
+
+    local version="${1-}"
+    local version_path="$(gvm_version_path "${version}")"
+
+    if [ ! -d "${version_path}" ]; then
+        gvm_err 'go ${version} is not installed.'
+        return 1
+    fi
+
+    gvm_echo "Uninstalling go ${version} ..."
+    command rm -rf "${version_path}"
+    
+    # TODO update PATH
+    gvm_echo "go ${version} has been uninstalled successfully."
 }
 
 gvm_help() {
@@ -263,6 +282,9 @@ gvm() {
         'install')
             gvm_install "$@"
         ;;
+        'uninstall')
+            gvm_uninstall "$@"
+        ;;
         'use' )
             gvm_use "$@"
         ;;
@@ -277,4 +299,4 @@ gvm() {
 GVM_DIR=$HOME/.gvm
 TMPDIR=/tmp/gvm
 mkdir -p $GVM_DIR
-gvm install 1.11.1
+gvm "$@"
