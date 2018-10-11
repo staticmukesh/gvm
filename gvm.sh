@@ -263,6 +263,10 @@ gvm_help() {
     gvm_echo
 }
 
+gvm_version() {
+    gvm_echo '0.1.0'
+}
+
 ##########################################################
 
 gvm() {
@@ -276,14 +280,17 @@ gvm() {
     shift
 
     case $COMMAND in
-        'help' | '--help' )
+        'help' | '--help' | '-v' )
             gvm_help
         ;;
-        'install')
+        'install' )
             gvm_install "$@"
         ;;
-        'uninstall')
+        'uninstall' )
             gvm_uninstall "$@"
+        ;;
+        'version' | '--version' ) 
+            gvm_version
         ;;
         'use' )
             gvm_use "$@"
@@ -297,6 +304,5 @@ gvm() {
 
 # Below mentioned lines are for testing only
 GVM_DIR=$HOME/.gvm
-TMPDIR=/tmp/gvm
 mkdir -p $GVM_DIR
 gvm "$@"
