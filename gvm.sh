@@ -41,16 +41,17 @@ gvm_get_arch() {
 }
 
 gvm_artifact_name() {
-    local GVM_OS
-    GVM_OS="$(gvm_get_os)"
+    local version="${1-}"
+    if [ -z "${version}" ]; then
+        gvm_err 'version is required'
+        return 3
+    fi
 
-    local GVM_ARCH
-    GVM_ARCH="$(gvm_get_arch)"
+    local gvm_os="$(gvm_get_os)"
+    local gvm_arch="$(gvm_get_arch)"
+    local artifact_name="go${version}.${gvm_os}-${gvm_arch}.tar.gz"
 
-    local ARTIFACT_NAME
-    ARTIFACT_NAME="go${version}.${GVM_OS}-${GVM_ARCH}.tar.gz"
-
-    gvm_echo "${ARTIFACT_NAME}"
+    gvm_echo "${artifact_name}"
 }
 
 gvm_download_link() {
@@ -98,18 +99,54 @@ gvm_compute_checksum() {
 }
 
 gvm_is_version_installed() {
-  [ -n "${1-}" ] && [ -x "$(gvm_version_path "$1" 2> /dev/null)"/bin/go ]
+    [ -n "${1-}" ] && [ -x "$(gvm_version_path "$1" 2> /dev/null)"/bin/go ]
+}
+
+gvm_grep() {
+  GREP_OPTIONS='' command grep "$@"
+}
+
+gvm_change_path() {
+  if [ -z "${1-}" ]; then
+    gvm_echo "${3-}${2-}"
+  elif ! gvm_echo "${1-}" | gvm_grep -q "${GVM_DIR}/[^/]*${2-}" \
+    && ! gvm_echo "${1-}" | gvm_grep -q "${GVM_DIR}/versions/[^/]*/[^/]*${2-}"; then
+    gvm_echo "${3-}${2-}:${1-}"
+  elif gvm_echo "${1-}" | gvm_grep -Eq "(^|:)(/usr(/local)?)?${2-}:.*${GVM_DIR}/[^/]*${2-}" \
+    || gvm_echo "${1-}" | gvm_grep -Eq "(^|:)(/usr(/local)?)?${2-}:.*${GVM_DIR}/versions/[^/]*/[^/]*${2-}"; then
+    gvm_echo "${3-}${2-}:${1-}"
+  else
+    gvm_echo "${1-}" | command sed \
+      -e "s#${GVM_DIR}/[^/]*${2-}[^:]*#${3-}${2-}#" \
+      -e "s#${GVM_DIR}/versions/[^/]*/[^/]*${2-}[^:]*#${3-}${2-}#"
+  fi
 }
 
 gvm_version_path() {
-  local version
-  version="${1-}"
-  if [ -z "${version}" ]; then
-    gvm_err 'version is required'
-    return 3
-  else
-    gvm_echo "${GVM_DIR}/versions/${VERSION}"
-  fi
+    local version="${1-}"
+    if [ -z "${version}" ]; then
+        gvm_err 'version is required'
+        return 3
+    else
+        gvm_echo "${GVM_DIR}/versions/go/${version}"
+    fi
+}
+
+gvm_is_cached() {
+    local version="${1-}"
+    if [ -z "${version}" ]; then
+        gvm_err 'version is required'
+        return 3
+    fi
+
+    local tarball=$(gvm_artifact_name ${version})
+    local cached_path="${GVM_CACHE_DIR}/${tarball}"
+
+    if [ -d "${GVM_CACHE_DIR}/${tarball}" ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 ##########################################################
@@ -135,38 +172,49 @@ gvm_install() {
         return 1
     fi
 
-    local version
-    version="${1-}"
+    local version="${1-}"
 
+    # check existence of version
     if gvm_is_version_installed "$version"; then
-        gvm_err "$version is already installed."
+        gvm_err "go $version is already installed."
         # TODO use this version
         return 1
     fi
 
-    local artifact_name=$(gvm_artifact_name)
-    local download_link="$(gvm_download_link ${artifact_name})"
+    # create cache dir, if doesn't exist
+    local cache_dir="${GVM_DIR}/.cache"
+    if [ ! -d "${cache_dir}" ]; then
+        command mkdir -p "${cache_dir}"
+    fi
 
     gvm_echo "Downloading and installing go ${version}..."
-    gvm_echo "Downloading ${download_link}..."
-    # gvm_download  -L -C - --progress-bar "${download_link}" -o "${artifact_name}" || (
-    #     command rm -rf "$artifact_name"
-    #     gvm_err "Binary download from ${download_link} failed."
-    # )
+    local artifact_name=$(gvm_artifact_name ${version})
 
+    # checking tarball in cache
+    if gvm_is_cached "${artifact_name}"; then
+        gvm_echo "${artifact_name} has already been download."
+    else
+        local download_link="$(gvm_download_link ${artifact_name})"
+        gvm_echo "Downloading ${download_link}..."
+        gvm_download -L -C - --progress-bar "${download_link}" -o "${cache_dir}/${artifact_name}" || (
+            # remove partially downloaded tarball, in case of failure
+            command rm -rf "${cache_dir}/${artifact_name}"
+            gvm_err "Binary download from ${download_link} failed."
+            exit 1
+        )
+    fi
+
+    # compute checksum
     gvm_compute_checksum "${artifact_name}"
 
-    if (
-        [ -n "${TMPDIR-}" ] && \
-        command mkdir -p "${TMPDIR}" && \
-        command tar -xf "${artifact_name}" -C "${TMPDIR}" --strip-components 1 && \
-        VERSION_PATH="$(gvm_version_path "${version}")" && \
-        command mkdir -p "${VERSION_PATH}" && \
-        command mv "${TMPDIR}/"* "${VERSION_PATH}" && \
-        command rm -rf "${TMPDIR}"
-    ); then
-        return 0
-    fi
+    # extract tarball at required path
+    local version_path="$(gvm_version_path "${version}")"
+
+    command mkdir -p "${version_path}"
+    command tar -xf "${cache_dir}/${artifact_name}" -C "${version_path}" --strip-components 1
+
+    # use the version
+    gvm use "${version}"
 }
 
 gvm_uninstall() {
@@ -215,6 +263,9 @@ gvm() {
         'install')
             gvm_install "$@"
         ;;
+        'use' )
+            gvm_use "$@"
+        ;;
         * )
             >&2 gvm --help
             return 127
@@ -224,6 +275,6 @@ gvm() {
 
 # Below mentioned lines are for testing only
 GVM_DIR=$HOME/.gvm
-TMPDIR=/tmp/gvm/
+TMPDIR=/tmp/gvm
 mkdir -p $GVM_DIR
 gvm install 1.11.1
