@@ -101,19 +101,33 @@ gvm_grep() {
 }
 
 gvm_change_path() {
-  if [ -z "${1-}" ]; then
-    gvm_echo "${3-}${2-}"
-  elif ! gvm_echo "${1-}" | gvm_grep -q "${GVM_DIR}/[^/]*${2-}" \
-    && ! gvm_echo "${1-}" | gvm_grep -q "${GVM_DIR}/versions/[^/]*/[^/]*${2-}"; then
-    gvm_echo "${3-}${2-}:${1-}"
-  elif gvm_echo "${1-}" | gvm_grep -Eq "(^|:)(/usr(/local)?)?${2-}:.*${GVM_DIR}/[^/]*${2-}" \
-    || gvm_echo "${1-}" | gvm_grep -Eq "(^|:)(/usr(/local)?)?${2-}:.*${GVM_DIR}/versions/[^/]*/[^/]*${2-}"; then
-    gvm_echo "${3-}${2-}:${1-}"
-  else
-    gvm_echo "${1-}" | command sed \
-      -e "s#${GVM_DIR}/[^/]*${2-}[^:]*#${3-}${2-}#" \
-      -e "s#${GVM_DIR}/versions/[^/]*/[^/]*${2-}[^:]*#${3-}${2-}#"
+    if [ -z "${1-}" ]; then
+        gvm_echo "${3-}${2-}"
+    elif ! gvm_echo "${1-}" | gvm_grep -q "${GVM_DIR}/[^/]*${2-}" \
+        && ! gvm_echo "${1-}" | gvm_grep -q "${GVM_DIR}/versions/[^/]*/[^/]*${2-}"; then
+        gvm_echo "${3-}${2-}:${1-}"
+    elif gvm_echo "${1-}" | gvm_grep -Eq "(^|:)(/usr(/local)?)?${2-}:.*${GVM_DIR}/[^/]*${2-}" \
+        || gvm_echo "${1-}" | gvm_grep -Eq "(^|:)(/usr(/local)?)?${2-}:.*${GVM_DIR}/versions/[^/]*/[^/]*${2-}"; then
+        gvm_echo "${3-}${2-}:${1-}"
+    else
+        gvm_echo "${1-}" | command sed \
+        -e "s#${GVM_DIR}/[^/]*${2-}[^:]*#${3-}${2-}#" \
+        -e "s#${GVM_DIR}/versions/[^/]*/[^/]*${2-}[^:]*#${3-}${2-}#"
+    fi
+}
+
+gvm_strip_path() {
+  if [ -z "${GVM_DIR-}" ]; then
+    gvm_err '${GVM_DIR} not set!'
+    return 1
   fi
+  gvm_echo "${1-}" | command sed \
+    -e "s#${GVM_DIR}/[^/]*${2-}[^:]*:##g" \
+    -e "s#:${GVM_DIR}/[^/]*${2-}[^:]*##g" \
+    -e "s#${GVM_DIR}/[^/]*${2-}[^:]*##g" \
+    -e "s#${GVM_DIR}/versions/[^/]*/[^/]*${2-}[^:]*:##g" \
+    -e "s#:${GVM_DIR}/versions/[^/]*/[^/]*${2-}[^:]*##g" \
+    -e "s#${GVM_DIR}/versions/[^/]*/[^/]*${2-}[^:]*##g"
 }
 
 gvm_install_dir() {
@@ -179,7 +193,19 @@ gvm_current() {
 }
 
 gvm_use() {
-    gvm_echo "use"
+    if [ $# -lt 1 ]; then
+        gvm_err 'Please provide a version to install.'
+        return 1
+    fi
+
+    local version="${1-}"
+    local version_path="$(gvm_version_path ${version})"
+
+    PATH="$(gvm_change_path "$PATH" "/bin" $version_path )"
+    export PATH
+    hash -r
+
+    gvm_echo "Now using go ${version}"
 }
 
 gvm_install() {
@@ -259,7 +285,7 @@ gvm_uninstall() {
     gvm_echo "Uninstalling go ${version} ..."
     command rm -rf "${version_path}"
     
-    # TODO update PATH
+    gvm deactivate
     gvm_echo "go ${version} has been uninstalled successfully."
 }
 
@@ -306,6 +332,12 @@ gvm_version() {
     gvm_echo '0.1.0'
 }
 
+gvm_deactivate() {
+    local NEWPATH="$(gvm_strip_path "$PATH" "/bin")"
+    export PATH="$NEWPATH"
+    hash -r
+}
+
 ##########################################################
 
 gvm() {
@@ -340,14 +372,12 @@ gvm() {
         'ls' )
             gvm_ls
         ;;
+        'deactivate' )
+            gvm_deactivate
+        ;;
         * )
             >&2 gvm --help
             return 127
         ;;
     esac
 }
-
-# Below mentioned lines are for testing only
-GVM_DIR=$HOME/.gvm
-mkdir -p $GVM_DIR
-gvm "$@"
