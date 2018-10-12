@@ -143,12 +143,35 @@ gvm_is_cached() {
     fi
 }
 
+gvm_tree_contains_path() {
+    local tree="${1-}"
+    local path="${2-}"
+
+    if [ "@${tree}@" = "@@" ] || [ "@${path}@" = "@@" ]; then
+        gvm_err "both the tree and the path are required"
+        return 2
+    fi
+
+    local pathdir=$(dirname "${path}")
+    while [ "${pathdir}" != "" ] && [ "${pathdir}" != "." ] && [ "${pathdir}" != "/" ] && [ "${pathdir}" != "${tree}" ]; do
+        pathdir=$(dirname "${pathdir}")
+    done
+    [ "${pathdir}" = "${tree}" ]
+}
+
 ##########################################################
 
 ####################### Commands #########################
 
 gvm_current() {
-    gvm_echo "current"
+    local gvm_current_go_path
+    if ! gvm_current_go_path="$(command which go 2> /dev/null)"; then
+        gvm_echo 'none'
+    elif gvm_tree_contains_path "${GVM_DIR}" "${gvm_current_go_path}"; then
+        gvm_echo "$(go version 2>/dev/null)"
+    else
+        gvm_echo 'system'
+    fi
 }
 
 gvm_use() {
@@ -290,6 +313,9 @@ gvm() {
         ;;
         'use' )
             gvm_use "$@"
+        ;;
+        'current' )
+            gvm_current "$@"
         ;;
         * )
             >&2 gvm --help
