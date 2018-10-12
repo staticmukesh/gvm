@@ -55,19 +55,13 @@ gvm_artifact_name() {
 }
 
 gvm_download_link() {
-    local ARTIFACT_NAME
-    ARTIFACT_NAME="$1"
-
-    local DOWNLOAD_URL
-    GVM_DOWNLOAD_URL="https://dl.google.com/go/${ARTIFACT_NAME}"
-
-    gvm_echo "${GVM_DOWNLOAD_URL}"
+    local artifact_name="$1"
+    gvm_echo "https://dl.google.com/go/${artifact_name}"
 }
 
 gvm_download() {
-    local CURL_COMPRESSED_FLAG
     if gvm_has "curl"; then
-        curl --fail  -q "$@"
+        eval curl --fail  -q "$@"
     elif gvm_has "wget"; then
         ARGS=$(gvm_echo "$@" | command sed -e 's/--progress-bar /--progress=bar /' \
                         -e 's/--compressed //' \
@@ -195,13 +189,15 @@ gvm_install() {
         gvm_echo "${artifact_name} has already been download."
     else
         local download_link="$(gvm_download_link ${artifact_name})"
+        local is_download_failed=0
         gvm_echo "Downloading ${download_link}..."
-        gvm_download -L -C - --progress-bar "${download_link}" -o "${cache_dir}/${artifact_name}" || (
-            # remove partially downloaded tarball, in case of failure
+        gvm_download -L -C - --progress-bar "${download_link}" -o "${cache_dir}/${artifact_name}" || is_download_failed=1
+        
+        if [ $is_download_failed -eq 1 ]; then
             command rm -rf "${cache_dir}/${artifact_name}"
             gvm_err "Binary download from ${download_link} failed."
-            exit 0
-        )
+            return 1
+        fi
     fi
 
     # compute checksum
@@ -229,7 +225,7 @@ gvm_uninstall() {
     local version_path="$(gvm_version_path "${version}")"
 
     if [ ! -d "${version_path}" ]; then
-        gvm_err 'go ${version} is not installed.'
+        gvm_err "go ${version} is not installed."
         return 1
     fi
 
