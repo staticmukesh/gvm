@@ -116,13 +116,17 @@ gvm_change_path() {
   fi
 }
 
+gvm_install_dir() {
+    gvm_echo "${GVM_DIR}/versions/go"
+}
+
 gvm_version_path() {
     local version="${1-}"
     if [ -z "${version}" ]; then
         gvm_err 'version is required'
         return 3
     else
-        gvm_echo "${GVM_DIR}/versions/go/${version}"
+        gvm_echo "$(gvm_install_dir)/${version}"
     fi
 }
 
@@ -282,6 +286,22 @@ gvm_help() {
     gvm_echo
 }
 
+gvm_ls() {
+    local versions
+    local version_path=$(gvm_install_dir)
+    if [ -d $version_path ]; then
+        versions=$(command ls -A1 ${version_path})
+        if [ -z ${#versions} ]; then
+            gvm_echo $versions
+        fi
+    fi
+
+    # check whether go has been installed
+    if [ "$(command which go 2> /dev/null)" ]; then
+        gvm_echo 'system'
+    fi
+}
+
 gvm_version() {
     gvm_echo '0.1.0'
 }
@@ -316,6 +336,9 @@ gvm() {
         ;;
         'current' )
             gvm_current "$@"
+        ;;
+        'ls' )
+            gvm_ls
         ;;
         * )
             >&2 gvm --help
