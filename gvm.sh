@@ -201,6 +201,11 @@ gvm_use() {
     local version="${1-}"
     local version_path="$(gvm_version_path ${version})"
 
+    if [ ! -d $version_path ]; then
+        gvm_echo "Please install ${version} first to use it."
+        return
+    fi
+
     PATH="$(gvm_change_path "$PATH" "/bin" $version_path )"
     export PATH
     hash -r
