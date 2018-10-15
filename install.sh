@@ -20,9 +20,9 @@ gvm_source() {
     local gvm_method="$1"
     local gvm_source_url
     if [ "_$gvm_method" = "_script" ]; then
-        gVM_SOURCE_URL="https://raw.githubusercontent.com/staticmukesh/gvm/$(gvm_latest_version)/gvm.sh"
+        gvm_source_url="https://raw.githubusercontent.com/staticmukesh/gvm/$(gvm_latest_version)/gvm.sh"
     elif [ "_$gvm_method" = "_git" ] || [ -z "$gvm_method" ]; then
-        gVM_SOURCE_URL="https://github.com/staticmukesh/gvm.git"
+        gvm_source_url="https://github.com/staticmukesh/gvm.git"
     else
         echo >&2 "Unexpected value \"$gvm_method\" for \$gvm_method"
         return 1
@@ -106,6 +106,7 @@ install_gvm_from_git() {
 
 install_gvm_as_script() {
     local install_dir="$(gvm_install_dir)"
+    local gvm_source_local="$(gvm_source script)"
 
     mkdir -p "$install_dir"
     if [ -f "$install_dir/gvm.sh" ]; then
@@ -209,13 +210,14 @@ gvm_do_install() {
         else
             echo "=> gvm source string already in ${gvm_profile}"
         fi
+    fi
 
-    \. "$(gvm_install_dir)/gvm.sh"
+    # \. "$(gvm_install_dir)/gvm.sh"
 
-    gvm_reset
+    # gvm_reset
 
     echo "=> Close and reopen your terminal to start using gvm or run the following to use it now:"
-    command printf "${SOURCE_STR}"
+    command printf "${source_str}"
 }
 
 gvm_reset() {
