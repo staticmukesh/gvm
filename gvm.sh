@@ -173,7 +173,7 @@ gvm_tree_contains_path() {
         return 2
     fi
 
-    local pathdir=$(dirname "${path}")
+    local pathdir="$(command dirname "${path}" 2> /dev/null )"
     while [ "${pathdir}" != "" ] && [ "${pathdir}" != "." ] && [ "${pathdir}" != "/" ] && [ "${pathdir}" != "${tree}" ]; do
         pathdir=$(dirname "${pathdir}")
     done
@@ -359,9 +359,8 @@ gvm_deactivate() {
 
 gvm_auto() {
     # set GVM_DIR
-    GVM_DIR="/tmp/" # todo: fix it
-
-    local version=$(command cat ${GVM_DIR}/default)
+    export GVM_DIR="$HOME/.gvm" # todo: fix it
+    local version=$(command cat ${GVM_DIR}/default 2> /dev/null)
     if [ ! -z "${version}" ]; then
         gvm_use $version
     fi
