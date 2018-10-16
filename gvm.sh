@@ -14,30 +14,30 @@ gvm_has() {
 }
 
 gvm_get_os() {
-  local GVM_UNAME
-  GVM_UNAME="$(command uname -a)"
-  local GVM_OS
-  case "$GVM_UNAME" in
-    Linux\ *) GVM_OS=linux ;;
-    Darwin\ *) GVM_OS=darwin ;;
-    SunOS\ *) GVM_OS=sunos ;;
-    FreeBSD\ *) GVM_OS=freebsd ;;
-    AIX\ *) GVM_OS=aix ;;
+  local gvm_uname
+  gvm_uname="$(command uname -a)"
+  local gvm_os
+  case "$gvm_uname" in
+    Linux\ *) gvm_os=linux ;;
+    Darwin\ *) gvm_os=darwin ;;
+    SunOS\ *) gvm_os=sunos ;;
+    FreeBSD\ *) gvm_os=freebsd ;;
+    AIX\ *) gvm_os=aix ;;
   esac
-  gvm_echo "${GVM_OS-}"
+  gvm_echo "${gvm_os-}"
 }
 
 gvm_get_arch() {
-    local HOST_ARCH
-    HOST_ARCH="$(command uname -m)"
+    local host_arch
+    host_arch="$(command uname -m)"
   
-    local GVM_ARCH
-    case "$HOST_ARCH" in
-        x86_64 | amd64) GVM_ARCH="amd64" ;;
-        i*86) GVM_ARCH="386" ;;
-        *) GVM_ARCH="$HOST_ARCH" ;;
+    local gvm_arch
+    case "$host_arch" in
+        x86_64 | amd64) gvm_arch="amd64" ;;
+        i*86) gvm_arch="386" ;;
+        *) gvm_arch="$host_arch" ;;
     esac
-    gvm_echo "${GVM_ARCH}"
+    gvm_echo "${gvm_arch}"
 }
 
 gvm_artifact_name() {
@@ -77,8 +77,7 @@ gvm_download() {
 }
 
 gvm_compute_checksum() {
-    local file 
-    file="${1-}"
+    local file ="${1-}"
 
     if [ -z "${file}" ]; then
         gvm_err 'Provided file to checksum is empty'
@@ -100,7 +99,7 @@ gvm_grep() {
   GREP_OPTIONS='' command grep "$@"
 }
 
-gvm_change_path() {
+gvm_add_path() {
     if [ -z "${1-}" ]; then
         gvm_echo "${3-}${2-}"
     elif ! gvm_echo "${1-}" | gvm_grep -q "${GVM_DIR}/[^/]*${2-}" \
@@ -130,18 +129,22 @@ gvm_strip_path() {
     -e "s#${GVM_DIR}/versions/[^/]*/[^/]*${2-}[^:]*##g"
 }
 
-gvm_install_dir() {
+gvm_go_dir() {
     gvm_echo "${GVM_DIR}/versions/go"
 }
 
-gvm_version_path() {
+gvm_go_version_dir() {
     local version="${1-}"
     if [ -z "${version}" ]; then
         gvm_err 'version is required'
         return 3
     else
-        gvm_echo "$(gvm_install_dir)/${version}"
+        gvm_echo "$(gvm_go_dir)/${version}"
     fi
+}
+
+gvm_cache_dir() {
+    gvm_echo "${GVM_DIR}/.cache"
 }
 
 gvm_is_cached() {
@@ -152,9 +155,9 @@ gvm_is_cached() {
     fi
 
     local tarball=$(gvm_artifact_name ${version})
-    local cached_path="${GVM_CACHE_DIR}/${tarball}"
+    local cached_path="$(gvm_cache_dir)/${tarball}"
 
-    if [ -d "${GVM_CACHE_DIR}/${tarball}" ]; then
+    if [ -d $cached_path ]; then
         return 0
     else
         return 1
@@ -194,13 +197,18 @@ gvm_current() {
 
 gvm_use() {
     if [ $# -lt 1 ]; then
-        gvm_err 'Please provide a version to install.'
+        gvm_err 'Please provide a version to use.'
         return 1
     fi
 
     local version="${1-}"
-    local version_path="$(gvm_version_path ${version})"
+    if [ "_$version" = "_system" ]; then
+        gvm_deactivate
+        gvm_set_default "$version"
+        return
+    fi
 
+    local version_path="$(gvm_version_path ${version})"
     if [ ! -d $version_path ]; then
         gvm_echo "Please install ${version} first to use it."
         return
@@ -210,6 +218,7 @@ gvm_use() {
     export PATH
     hash -r
 
+    gvm_set_default "$version"
     gvm_echo "Now using go ${version}"
 }
 
@@ -317,6 +326,10 @@ gvm_help() {
     gvm_echo
 }
 
+gvm_set_default() {
+    [ -n "${1-}" ] && [ echo "$1" 1> "$GVM_DIR/default" ]
+}
+
 gvm_ls() {
     local versions
     local version_path=$(gvm_install_dir)
@@ -341,6 +354,17 @@ gvm_deactivate() {
     local NEWPATH="$(gvm_strip_path "$PATH" "/bin")"
     export PATH="$NEWPATH"
     hash -r
+}
+
+gvm_auto() {
+    # set GVM_DIR
+    GVM_DIR="~/.gvm"
+
+    local version=$(command $GVM_DIR/default)
+    gvm_echo $version
+    if [ -z $version ]; then
+        gvm_use $version
+    fi
 }
 
 ##########################################################
@@ -386,3 +410,6 @@ gvm() {
         ;;
     esac
 }
+
+gvm_auto
+gvm_cache_dir
