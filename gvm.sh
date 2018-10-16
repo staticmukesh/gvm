@@ -166,14 +166,14 @@ gvm_is_cached() {
 
 gvm_tree_contains_path() {
     local tree="${1-}"
-    local path="${2-}"
+    local install_path="${2-}"
 
-    if [ "@${tree}@" = "@@" ] || [ "@${path}@" = "@@" ]; then
+    if [ "@${tree}@" = "@@" ] || [ "@${install_path}@" = "@@" ]; then
         gvm_err "both the tree and the path are required"
         return 2
     fi
 
-    local pathdir="$(command dirname "${path}" 2> /dev/null )"
+    local pathdir="$(command dirname "${install_path}")"
     while [ "${pathdir}" != "" ] && [ "${pathdir}" != "." ] && [ "${pathdir}" != "/" ] && [ "${pathdir}" != "${tree}" ]; do
         pathdir=$(dirname "${pathdir}")
     done
