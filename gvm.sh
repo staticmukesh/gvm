@@ -92,7 +92,7 @@ gvm_compute_checksum() {
 }
 
 gvm_is_version_installed() {
-    [ -n "${1-}" ] && [ -x "$(gvm_version_path "$1" 2> /dev/null)"/bin/go ]
+    [ -n "${1-}" ] && [ -x "$(gvm_go_version_dir "$1" 2> /dev/null)"/bin/go ]
 }
 
 gvm_grep() {
@@ -181,7 +181,6 @@ gvm_tree_contains_path() {
 }
 
 gvm_set_default() {
-    # fix bug here
     [ -n "${1-}" ] && [ $(command echo "$1" 1> ${GVM_DIR}/default) ]
 }
 
@@ -213,13 +212,13 @@ gvm_use() {
         return
     fi
 
-    local version_path="$(gvm_version_path ${version})"
+    local version_path="$(gvm_go_version_dir ${version})"
     if [ ! -d $version_path ]; then
         gvm_echo "Please install ${version} first to use it."
         return
     fi
 
-    PATH="$(gvm_change_path "$PATH" "/bin" $version_path )"
+    PATH="$(gvm_add_path "$PATH" "/bin" $version_path )"
     export PATH
     hash -r
 
@@ -273,10 +272,11 @@ gvm_install() {
     fi
 
     # compute checksum
-    gvm_compute_checksum "${cache_dir}/${artifact_name}"
+    # todo: fix it
+    # gvm_compute_checksum "${cache_dir}/${artifact_name}"
 
     # extract tarball at required path
-    local version_path="$(gvm_version_path "${version}")"
+    local version_path="$(gvm_go_version_dir "${version}")"
 
     command mkdir -p "${version_path}"
     command tar -xf "${cache_dir}/${artifact_name}" -C "${version_path}" --strip-components 1
@@ -294,7 +294,7 @@ gvm_uninstall() {
     fi
 
     local version="${1-}"
-    local version_path="$(gvm_version_path "${version}")"
+    local version_path="$(gvm_go_version_dir "${version}")"
 
     if [ ! -d "${version_path}" ]; then
         gvm_err "go ${version} is not installed."
@@ -333,7 +333,7 @@ gvm_help() {
 
 gvm_ls() {
     local versions
-    local version_path=$(gvm_install_dir)
+    local version_path=$(gvm_go_dir)
     if [ -d $version_path ]; then
         versions=$(command ls -A1 ${version_path})
         if [ -z ${#versions} ]; then
@@ -361,7 +361,9 @@ gvm_auto() {
     # set GVM_DIR
     export GVM_DIR="$HOME/.gvm" # todo: fix it
     local version=$(command cat ${GVM_DIR}/default 2> /dev/null)
+    echo $version
     if [ ! -z "${version}" ]; then
+        echo "using ${version}"
         gvm_use $version
     fi
 }
