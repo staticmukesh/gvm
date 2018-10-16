@@ -336,7 +336,7 @@ gvm_ls() {
     local version_path=$(gvm_go_dir)
     if [ -d $version_path ]; then
         versions=$(command ls -A1 ${version_path})
-        if [ -z ${#versions} ]; then
+        if [ ! -z ${#versions} ]; then
             gvm_echo $versions
         fi
     fi
@@ -358,12 +358,10 @@ gvm_deactivate() {
 }
 
 gvm_auto() {
-    # set GVM_DIR
     export GVM_DIR="$HOME/.gvm" # todo: fix it
     local version=$(command cat ${GVM_DIR}/default 2> /dev/null)
     echo $version
     if [ ! -z "${version}" ]; then
-        echo "using ${version}"
         gvm_use $version
     fi
 }
