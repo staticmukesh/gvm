@@ -180,6 +180,11 @@ gvm_tree_contains_path() {
     [ "${pathdir}" = "${tree}" ]
 }
 
+gvm_set_default() {
+    # fix bug here
+    [ -n "${1-}" ] && [ $(command echo "$1" 1> ${GVM_DIR}/default) ]
+}
+
 ##########################################################
 
 ####################### Commands #########################
@@ -326,10 +331,6 @@ gvm_help() {
     gvm_echo
 }
 
-gvm_set_default() {
-    [ -n "${1-}" ] && [ echo "$1" 1> "$GVM_DIR/default" ]
-}
-
 gvm_ls() {
     local versions
     local version_path=$(gvm_install_dir)
@@ -358,11 +359,10 @@ gvm_deactivate() {
 
 gvm_auto() {
     # set GVM_DIR
-    GVM_DIR="~/.gvm"
+    GVM_DIR="/tmp/" # todo: fix it
 
-    local version=$(command $GVM_DIR/default)
-    gvm_echo $version
-    if [ -z $version ]; then
+    local version=$(command cat ${GVM_DIR}/default)
+    if [ ! -z "${version}" ]; then
         gvm_use $version
     fi
 }
@@ -412,4 +412,3 @@ gvm() {
 }
 
 gvm_auto
-gvm_cache_dir
