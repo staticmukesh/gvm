@@ -13,7 +13,7 @@ gvm_install_dir() {
 }
 
 gvm_latest_version() {
-    gvm_echo "0.1.0"
+    gvm_echo "v0.1.0"
 }
 
 gvm_source() {
@@ -54,9 +54,9 @@ install_gvm_from_git() {
         echo "=> gvm is already installed in $install_dir, trying to update using git"
         command printf '\r=> '
         command git --git-dir="$install_dir"/.git --work-tree="$install_dir" fetch origin tag "$(gvm_latest_version)" --depth=1 2> /dev/null || {
-        echo >&2 "Failed to update gvm, run 'git fetch' in $install_dir yourself."
-        exit 1
-    }
+            echo >&2 "Failed to update gvm, run 'git fetch' in $install_dir yourself."
+            exit 1
+        }
     else
         # Cloning to $install_dir
         echo "=> Downloading gvm from git to '$install_dir'"
@@ -201,29 +201,22 @@ gvm_do_install() {
         echo "=> Create one of them and run this script again"
         echo "   OR"
         echo "=> Append the following lines to the correct file yourself:"
-        command printf "${SOURCE_STR}"
+        command printf "${source_str}"
         echo
     else
         if ! command grep -qc '/gvm.sh' "$gvm_profile"; then
             echo "=> Appending gvm source string to $gvm_profile"
-            command printf "${SOURCE_STR}" >> "$gvm_profile"
+            command printf "${source_str}" >> "$gvm_profile"
         else
             echo "=> gvm source string already in ${gvm_profile}"
         fi
     fi
 
-    # \. "$(gvm_install_dir)/gvm.sh"
-
-    # gvm_reset
+    \. "$(gvm_install_dir)/gvm.sh"
 
     echo "=> Close and reopen your terminal to start using gvm or run the following to use it now:"
     command printf "${source_str}"
 }
 
-gvm_reset() {
-    unset -f gvm_echo gvm_has gvm_install_dir gvm_latest_version gvm_source gvm_download
-        install_gvm_from_git install_gvm_as_script gvm_try_profile gvm_detect_profile
-        gvm_do_install gvm_reset
-}
-
 gvm_do_install
+
