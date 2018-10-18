@@ -219,4 +219,3 @@ gvm_do_install() {
 }
 
 gvm_do_install
-

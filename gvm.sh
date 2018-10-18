@@ -200,15 +200,31 @@ gvm_current() {
 }
 
 gvm_use() {
-    if [ $# -lt 1 ]; then
-        gvm_err 'Please provide a version to use.'
+    local version
+    local gvm_use_silent
+
+    while [ $# -ne 0 ]
+        do
+            case "$1" in
+                '--silent')
+                    gvm_use_silent=1
+                ;;
+                * )
+                    version="$1"
+                ;;
+            esac
+        shift
+    done
+
+    if [ -z $version ]; then
+        gvm_err 'Please provife a version to use.'
         return 1
     fi
 
-    local version="${1-}"
     if [ "_$version" = "_system" ]; then
         gvm_deactivate
         gvm_set_default "$version"
+        [ -z "${gvm_use_silent}" ] && gvm_echo "Now using system's go"
         return
     fi
 
@@ -223,7 +239,7 @@ gvm_use() {
     hash -r
 
     gvm_set_default "$version"
-    gvm_echo "Now using go ${version}"
+    [ -z "${gvm_use_silent}" ] && gvm_echo "Now using go ${version}"
 }
 
 gvm_install() {
@@ -360,9 +376,8 @@ gvm_deactivate() {
 gvm_auto() {
     export GVM_DIR="$HOME/.gvm" # todo: fix it
     local version=$(command cat ${GVM_DIR}/default 2> /dev/null)
-    echo $version
     if [ ! -z "${version}" ]; then
-        gvm_use $version
+        gvm_use $version --silent
     fi
 }
 
