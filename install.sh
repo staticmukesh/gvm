@@ -127,35 +127,25 @@ gvm_try_profile() {
   echo "${1}"
 }
 
-gvm_detect_profile() {
-    if [ -n "${PROFILE}" ] && [ -f "${PROFILE}" ]; then
-        echo "${PROFILE}"
-        return
+gvm_update_profile() {
+    local source_str="${1-}"
+    if [ -z "${source_str}" ]; then
+        gvm_err 'source_str is required'
+        return 3
     fi
 
-    local detected_profile=''
-    if [ -n "${BASH_VERSION-}" ]; then
-        if [ -f "$HOME/.bashrc" ]; then
-            detected_profile="$HOME/.bashrc"
-        elif [ -f "$HOME/.bash_profile" ]; then
-            detected_profile="$HOME/.bash_profile"
-        fi
-    elif [ -n "${ZSH_VERSION-}" ]; then
-        detected_profile="$HOME/.zshrc"
-    fi
-
-    if [ -z "$detected_profile" ]; then
-        for EACH_PROFILE in ".profile" ".bashrc" ".bash_profile" ".zshrc"
-            do
-            if detected_profile="$(gvm_try_profile "${HOME}/${EACH_PROFILE}")"; then
-                break
+    local profile_found=0
+    for EACH_PROFILE in ".profile" ".bashrc" ".bash_profile" ".zshrc"
+        do
+        if detected_profile="$(gvm_try_profile "${HOME}/${EACH_PROFILE}")"; then
+            if ! command grep -qc '/gvm.sh' "$detected_profile"; then
+                command printf "${source_str}" >> "$detected_profile"
+                profile_found=1
             fi
-        done
-    fi
+        fi
+    done
 
-    if [ ! -z "$detected_profile" ]; then
-        echo "$detected_profile"
-    fi
+    echo "${profile_found}"
 }
 
 gvm_do_install() {
@@ -187,29 +177,16 @@ gvm_do_install() {
         install_gvm_as_script
     fi
 
-    local gvm_profile="$(gvm_detect_profile)"
     local profile_install_dir="$(gvm_install_dir | command sed "s:^$HOME:\$HOME:")"
-
     local source_str="\\nexport GVM_DIR=\"${profile_install_dir}\"\\n[ -s \"\$GVM_DIR/gvm.sh\" ] && \\. \"\$GVM_DIR/gvm.sh\"  # This loads gvm\\n"
 
-    if [ -z "${gvm_profile-}" ] ; then
-        local tried_profile
-        if [ -n "${PROFILE}" ]; then
-            tried_profile="${gvm_profile} (as defined in \$PROFILE), "
-        fi
-        echo "=> Profile not found. Tried ${tried_profile-}~/.bashrc, ~/.bash_profile, ~/.zshrc, and ~/.profile."
+    if [ "_$(gvm_update_profile ${source_str})" = '_0' ]; then
+        echo "=> Profile not found. Tried ~/.bashrc, ~/.bash_profile, ~/.zshrc, and ~/.profile."
         echo "=> Create one of them and run this script again"
         echo "   OR"
         echo "=> Append the following lines to the correct file yourself:"
         command printf "${source_str}"
         echo
-    else
-        if ! command grep -qc '/gvm.sh' "$gvm_profile"; then
-            echo "=> Appending gvm source string to $gvm_profile"
-            command printf "${source_str}" >> "$gvm_profile"
-        else
-            echo "=> gvm source string already in ${gvm_profile}"
-        fi
     fi
 
     \. "$(gvm_install_dir)/gvm.sh"
