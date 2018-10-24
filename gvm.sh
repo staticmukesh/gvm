@@ -364,7 +364,7 @@ gvm_ls() {
 }
 
 gvm_version() {
-    gvm_echo 'v0.1.0'
+    gvm_echo 'v0.1.1'
 }
 
 gvm_deactivate() {
