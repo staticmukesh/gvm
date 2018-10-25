@@ -16,6 +16,25 @@ wget -qO- https://raw.githubusercontent.com/staticmukesh/gvm/v0.1.1/install.sh |
 
 **Note:** `gvm` does not support Windows.
 
+## Usage
+
+```
+gvm --help                      Show this message
+gvm --version                   Print out the installed version of gvm
+gvm install <version>           Download and install a <version>
+gvm uninstall <version>         Uninstall a <version>
+gvm use <version>               Modify PATH to use <version>
+gvm current                     Display currently activated version
+gvm ls                          List installed versions
+```
+
+Examples:
+```
+gvm install 1.11.0               Install a specific version number
+gvm uninstall 1.11.0             Uninstall a specific version number
+gvm use 1.11.0                   Use a specific version number
+```
+
 ## Contributing
 
 Feel free to raise pull request, if you have any suggestion or improvement.
