@@ -128,7 +128,7 @@ gvm_try_profile() {
 }
 
 gvm_update_profile() {
-    local source_str="${1-}"
+    local source_str="${@-}"
     if [ -z "${source_str}" ]; then
         gvm_err 'source_str is required'
         return 3
