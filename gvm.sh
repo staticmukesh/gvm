@@ -88,7 +88,6 @@ gvm_releases_cache_expired() {
 }
 
 gvm_releases() {
-	set -x
 	IS_CACHE=$([ -f $(gvm_releases_cache_file) ] && gvm_echo 1 || gvm_echo 0)
 	CACHE_EXPIRED=$([ $IS_CACHE -eq 1 ] && $(gvm_releases_cache_expired) || gvm_echo 1)
 	[ $CACHE_EXPIRED -eq 0 ] || gvm_releases_update_cache
