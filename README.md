@@ -25,6 +25,8 @@ gvm install <version>           Download and install a <version>
 gvm uninstall <version>         Uninstall a <version>
 gvm use <version>               Modify PATH to use <version>
 gvm current                     Display currently activated version
+gvm releases                    Display available release versions to install
+gvm flush                       Remove the cache file used in gvm releases
 gvm ls                          List installed versions
 ```
 
