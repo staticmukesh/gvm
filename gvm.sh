@@ -64,7 +64,7 @@ gvm_releases_cache_file() {
 }
 
 gvm_releases_parse() {
-	grep -Po "https://dl.google.com/go/go[^>\"]+" $(gvm_releases_cache_file) | grep -Po "go[^/\-a-z]+" | sed -e "s/.$//g" | sort -u
+	grep -Po "https://dl.google.com/go/go[^>\"]+" $(gvm_releases_cache_file) | grep -Po "go[^/\-a-z]+" | sed -e "s/.$//g" | sed -e "s/^go//g" | sort -u
 }
 
 gvm_releases_update_cache() {
