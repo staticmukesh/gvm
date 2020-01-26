@@ -327,6 +327,7 @@ gvm_install() {
     fi
 
     gvm_init_cache_dir
+    local cache_dir=$(gvm_cache_dir)
 
     gvm_echo "Downloading and installing go ${version}..."
     local artifact_name=$(gvm_artifact_name ${version})
