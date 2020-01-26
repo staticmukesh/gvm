@@ -374,6 +374,8 @@ gvm_help() {
     gvm_echo '  gvm uninstall <version>         Uninstall a <version>'        
     gvm_echo '  gvm use <version>               Modify PATH to use <version>'
     gvm_echo '  gvm current                     Display currently activated version'
+    gvm_echo '  gvm releases                    Display available release versions to install'
+    gvm_echo '  gvm flush                       Remove the cache file used in gvm releases'
     gvm_echo '  gvm ls                          List installed versions'
     gvm_echo
     gvm_echo 'Example:'
