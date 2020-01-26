@@ -396,7 +396,7 @@ gvm_help() {
     gvm_echo '  gvm uninstall <version>         Uninstall a <version>'        
     gvm_echo '  gvm use <version>               Modify PATH to use <version>'
     gvm_echo '  gvm current                     Display currently activated version'
-    gvm_echo '  gvm releases [filter]           Display available versions to install, optional filter ex: gvm releases 1.12'
+    gvm_echo '  gvm releases [filter]           Display available versions to install [optional filter]'
     gvm_echo '  gvm flush                       Remove the cache file used in gvm releases'
     gvm_echo '  gvm ls                          List installed versions'
     gvm_echo
@@ -404,6 +404,7 @@ gvm_help() {
     gvm_echo ' gvm install 1.11.0               Install a specific version number'
     gvm_echo ' gvm uninstall 1.11.0             Uninstall a specific version number'
     gvm_echo ' gvm use 1.11.0                   Use a specific version number'
+    gvm_echo ' gvm releases 1.13                Will show only versions begin with 1.13'
     gvm_echo
     gvm_echo 'Note:'
     gvm_echo ' to remove, delete or uninstall gvm - just remove the $GVM_DIR folder (usually `~/.gvm`)'
