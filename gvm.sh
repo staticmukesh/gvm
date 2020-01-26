@@ -13,6 +13,14 @@ gvm_has() {
   type "${1-}" > /dev/null 2>&1
 }
 
+gvm_init_cache_dir() {
+   # create cache dir, if doesn't exist
+   local cache_dir="${GVM_DIR}/.cache"
+   if [ ! -d "${cache_dir}" ]; then
+      command mkdir -p "${cache_dir}"
+   fi
+}
+
 gvm_get_os() {
   local gvm_uname
   gvm_uname="$(command uname -a)"
@@ -88,10 +96,11 @@ gvm_releases_cache_expired() {
 }
 
 gvm_releases() {
-	IS_CACHE=$([ -f $(gvm_releases_cache_file) ] && gvm_echo 1 || gvm_echo 0)
-	CACHE_EXPIRED=$([ $IS_CACHE -eq 1 ] && gvm_releases_cache_expired; gvm_echo $?)
-	[ $CACHE_EXPIRED -eq 0 ] || gvm_releases_update_cache
-	gvm_releases_parse
+   gvm_init_cache_dir
+   IS_CACHE=$([ -f $(gvm_releases_cache_file) ] && gvm_echo 1 || gvm_echo 0)
+   CACHE_EXPIRED=$([ $IS_CACHE -eq 1 ] && gvm_releases_cache_expired; gvm_echo $?)
+   [ $CACHE_EXPIRED -eq 0 ] || gvm_releases_update_cache
+   gvm_releases_parse
 }
 
 gvm_flush() {
@@ -301,11 +310,7 @@ gvm_install() {
         return 1
     fi
 
-    # create cache dir, if doesn't exist
-    local cache_dir="${GVM_DIR}/.cache"
-    if [ ! -d "${cache_dir}" ]; then
-        command mkdir -p "${cache_dir}"
-    fi
+    gvm_init_cache_dir
 
     gvm_echo "Downloading and installing go ${version}..."
     local artifact_name=$(gvm_artifact_name ${version})
