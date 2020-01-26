@@ -26,7 +26,7 @@ gvm uninstall <version>         Uninstall a <version>
 gvm use <version>               Modify PATH to use <version>
 gvm current                     Display currently activated version
 gvm ls                          List installed versions
-gvm releases [filter]           Display available release versions to install, optionally filter by major and minor version ex: gvm releases 1.12 would only return 1.12.* releases
+gvm releases [filter]           Display available versions to install [optional filter]
 gvm flush                       Remove the cache file used in gvm releases
 ```
 
@@ -35,6 +35,7 @@ Examples:
 gvm install 1.11.0               Install a specific version number
 gvm uninstall 1.11.0             Uninstall a specific version number
 gvm use 1.11.0                   Use a specific version number
+gvm releases 1.13                Will show only versions begin with 1.13
 ```
 
 ## Contributing
