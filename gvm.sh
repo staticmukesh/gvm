@@ -59,6 +59,45 @@ gvm_download_link() {
     gvm_echo "https://dl.google.com/go/${artifact_name}"
 }
 
+gvm_releases_cache_file() {
+	gvm_echo "$(gvm_cache_dir)/go_releases"
+}
+
+gvm_releases_parse() {
+	grep -Po "https://dl.google.com/go/go[^>\"]+" $(gvm_releases_cache_file) | grep -Po "go[^/\-a-z]+" | sed -e "s/.$//g" | sed -e "s/^go//g" | sort -u
+}
+
+gvm_releases_update_cache() {
+	curl --user-agent "gvm-release-cacher-$(gvm_version)"  -s https://golang.org/dl/ -o $(gvm_releases_cache_file)
+}
+
+gvm_releases_cache_ttl() {
+	gvm_echo 3600
+}
+
+gvm_releases_cache_expired() {
+	CACHE_LAST_CHANGE=$(stat `gvm_releases_cache_file` | grep Change | cut -d':' -f2- | sed -e "s/^[^0-9]*//g")
+	CACHE_TS=$(date -d "${CACHE_LAST_CHANGE}" +"%s")
+	NOW_TS=$(date +"%s")
+	CACHE_AGE=$(expr $NOW_TS - $CACHE_TS)
+	if [ $(gvm_releases_cache_ttl) -lt $CACHE_AGE ]; then
+		return "1"
+	else
+		return "0"
+	fi
+}
+
+gvm_releases() {
+	IS_CACHE=$([ -f $(gvm_releases_cache_file) ] && gvm_echo 1 || gvm_echo 0)
+	CACHE_EXPIRED=$([ $IS_CACHE -eq 1 ] && gvm_releases_cache_expired; gvm_echo $?)
+	[ $CACHE_EXPIRED -eq 0 ] || gvm_releases_update_cache
+	gvm_releases_parse
+}
+
+gvm_flush() {
+	rm $(gvm_releases_cache_file)
+}
+
 gvm_download() {
     if gvm_has "curl"; then
         eval curl --fail  -q "$@"
@@ -335,6 +374,8 @@ gvm_help() {
     gvm_echo '  gvm uninstall <version>         Uninstall a <version>'        
     gvm_echo '  gvm use <version>               Modify PATH to use <version>'
     gvm_echo '  gvm current                     Display currently activated version'
+    gvm_echo '  gvm releases                    Display available release versions to install'
+    gvm_echo '  gvm flush                       Remove the cache file used in gvm releases'
     gvm_echo '  gvm ls                          List installed versions'
     gvm_echo
     gvm_echo 'Example:'
@@ -414,6 +455,12 @@ gvm() {
         ;;
         'ls' )
             gvm_ls
+        ;;
+        'flush' )
+            gvm_flush
+        ;;
+        'releases' )
+            gvm_releases
         ;;
         'deactivate' )
             gvm_deactivate
