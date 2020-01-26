@@ -72,7 +72,8 @@ gvm_releases_cache_file() {
 }
 
 gvm_releases_parse() {
-	grep -Po "https://dl.google.com/go/go[^>\"]+" $(gvm_releases_cache_file) | grep -Po "go[^/\-a-z]+" | sed -e "s/.$//g" | sed -e "s/^go//g" | sort -u
+	local filter="${1-.*}"
+	grep -Po "https://dl.google.com/go/go[^>\"]+" $(gvm_releases_cache_file) | grep -Po "go[^/\-a-z]+" | sed -e "s/.$//g" | sed -e "s/^go//g" | sort -Vu | grep -P "^$filter"
 }
 
 gvm_releases_update_cache() {
@@ -95,12 +96,27 @@ gvm_releases_cache_expired() {
 	fi
 }
 
+gvm_releases_format() {
+   local filter="${1-.*}"
+   for version in $(gvm_releases_parse $filter)
+   do
+      minor=$(echo $version | grep -oP "^[^\.]*\.[0-9]*")
+      if [ "$minor" != "$lastminor" ];then
+         echo -e "\n\n\033[1m${minor}\033[0m"
+      else
+         echo -e "$version"
+      fi
+      lastminor=$minor
+   done
+}
+
 gvm_releases() {
+   local filter="${1-.*}"
    gvm_init_cache_dir
    IS_CACHE=$([ -f $(gvm_releases_cache_file) ] && gvm_echo 1 || gvm_echo 0)
    CACHE_EXPIRED=$([ $IS_CACHE -eq 1 ] && gvm_releases_cache_expired; gvm_echo $?)
    [ $CACHE_EXPIRED -eq 0 ] || gvm_releases_update_cache
-   gvm_releases_parse
+   gvm_releases_format $filter
 }
 
 gvm_flush() {
@@ -379,7 +395,7 @@ gvm_help() {
     gvm_echo '  gvm uninstall <version>         Uninstall a <version>'        
     gvm_echo '  gvm use <version>               Modify PATH to use <version>'
     gvm_echo '  gvm current                     Display currently activated version'
-    gvm_echo '  gvm releases                    Display available release versions to install'
+    gvm_echo '  gvm releases [filter]           Display available versions to install, optional filter ex: gvm releases 1.12'
     gvm_echo '  gvm flush                       Remove the cache file used in gvm releases'
     gvm_echo '  gvm ls                          List installed versions'
     gvm_echo
@@ -465,7 +481,7 @@ gvm() {
             gvm_flush
         ;;
         'releases' )
-            gvm_releases
+            gvm_releases "$@"
         ;;
         'deactivate' )
             gvm_deactivate
