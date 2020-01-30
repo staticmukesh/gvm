@@ -13,6 +13,14 @@ gvm_has() {
   type "${1-}" > /dev/null 2>&1
 }
 
+gvm_init_cache_dir() {
+   # create cache dir, if doesn't exist
+   local cache_dir="${GVM_DIR}/.cache"
+   if [ ! -d "${cache_dir}" ]; then
+      command mkdir -p "${cache_dir}"
+   fi
+}
+
 gvm_get_os() {
   local gvm_uname
   gvm_uname="$(command uname -a)"
@@ -64,7 +72,8 @@ gvm_releases_cache_file() {
 }
 
 gvm_releases_parse() {
-	grep -Po "https://dl.google.com/go/go[^>\"]+" $(gvm_releases_cache_file) | grep -Po "go[^/\-a-z]+" | sed -e "s/.$//g" | sed -e "s/^go//g" | sort -u
+	local filter="${1-.*}"
+	grep -Po "https://dl.google.com/go/go[^>\"]+" $(gvm_releases_cache_file) | grep -Po "go[^/\-a-z]+" | sed -e "s/.$//g" | sed -e "s/^go//g" | sort -Vu | grep -P "^$filter"
 }
 
 gvm_releases_update_cache() {
@@ -87,11 +96,27 @@ gvm_releases_cache_expired() {
 	fi
 }
 
+gvm_releases_format() {
+   local filter="${1-.*}"
+   for version in $(gvm_releases_parse $filter)
+   do
+      minor=$(echo $version | grep -oP "^[^\.]*\.[0-9]*")
+      if [ "$minor" != "$lastminor" ];then
+         echo -e "\n\n\033[1m${minor}\033[0m"
+      else
+         echo -e "$version"
+      fi
+      lastminor=$minor
+   done
+}
+
 gvm_releases() {
-	IS_CACHE=$([ -f $(gvm_releases_cache_file) ] && gvm_echo 1 || gvm_echo 0)
-	CACHE_EXPIRED=$([ $IS_CACHE -eq 1 ] && gvm_releases_cache_expired; gvm_echo $?)
-	[ $CACHE_EXPIRED -eq 0 ] || gvm_releases_update_cache
-	gvm_releases_parse
+   local filter="${1-.*}"
+   gvm_init_cache_dir
+   IS_CACHE=$([ -f $(gvm_releases_cache_file) ] && gvm_echo 1 || gvm_echo 0)
+   CACHE_EXPIRED=$([ $IS_CACHE -eq 1 ] && gvm_releases_cache_expired; gvm_echo $?)
+   [ $CACHE_EXPIRED -eq 0 ] || gvm_releases_update_cache
+   gvm_releases_format $filter
 }
 
 gvm_flush() {
@@ -301,11 +326,8 @@ gvm_install() {
         return 1
     fi
 
-    # create cache dir, if doesn't exist
-    local cache_dir="${GVM_DIR}/.cache"
-    if [ ! -d "${cache_dir}" ]; then
-        command mkdir -p "${cache_dir}"
-    fi
+    gvm_init_cache_dir
+    local cache_dir=$(gvm_cache_dir)
 
     gvm_echo "Downloading and installing go ${version}..."
     local artifact_name=$(gvm_artifact_name ${version})
@@ -374,7 +396,7 @@ gvm_help() {
     gvm_echo '  gvm uninstall <version>         Uninstall a <version>'        
     gvm_echo '  gvm use <version>               Modify PATH to use <version>'
     gvm_echo '  gvm current                     Display currently activated version'
-    gvm_echo '  gvm releases                    Display available release versions to install'
+    gvm_echo '  gvm releases [filter]           Display available versions to install [optional filter]'
     gvm_echo '  gvm flush                       Remove the cache file used in gvm releases'
     gvm_echo '  gvm ls                          List installed versions'
     gvm_echo
@@ -382,6 +404,7 @@ gvm_help() {
     gvm_echo ' gvm install 1.11.0               Install a specific version number'
     gvm_echo ' gvm uninstall 1.11.0             Uninstall a specific version number'
     gvm_echo ' gvm use 1.11.0                   Use a specific version number'
+    gvm_echo ' gvm releases 1.13                Will show only versions begin with 1.13'
     gvm_echo
     gvm_echo 'Note:'
     gvm_echo ' to remove, delete or uninstall gvm - just remove the $GVM_DIR folder (usually `~/.gvm`)'
@@ -460,7 +483,7 @@ gvm() {
             gvm_flush
         ;;
         'releases' )
-            gvm_releases
+            gvm_releases "$@"
         ;;
         'deactivate' )
             gvm_deactivate

@@ -13,7 +13,7 @@ gvm_install_dir() {
 }
 
 gvm_latest_version() {
-    gvm_echo "v0.1.1"
+    gvm_echo "v0.1.2"
 }
 
 gvm_source() {
@@ -128,7 +128,7 @@ gvm_try_profile() {
 }
 
 gvm_update_profile() {
-    local source_str="${1-}"
+    local source_str="${@-}"
     if [ -z "${source_str}" ]; then
         gvm_err 'source_str is required'
         return 3

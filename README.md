@@ -6,11 +6,11 @@ _gvm_ is an attempt to manage multiple active golang versions.
 To install `gvm`, you can run the install script using curl:
 
 ```
-curl -o- https://raw.githubusercontent.com/staticmukesh/gvm/v0.1.1/install.sh | bash
+curl -o- https://raw.githubusercontent.com/staticmukesh/gvm/v0.1.2/install.sh | bash
 ```
 or wget:
 ```
-wget -qO- https://raw.githubusercontent.com/staticmukesh/gvm/v0.1.1/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/staticmukesh/gvm/v0.1.2/install.sh | bash
 ```
 <sub>The script clones the gvm repository to `~/.gvm` and adds the source line to your profile (`~/.bash_profile`, `~/.zshrc`, `~/.profile`, and `~/.bashrc`).</sub>
 
@@ -26,6 +26,8 @@ gvm uninstall <version>         Uninstall a <version>
 gvm use <version>               Modify PATH to use <version>
 gvm current                     Display currently activated version
 gvm ls                          List installed versions
+gvm releases [filter]           Display available versions to install [optional filter]
+gvm flush                       Remove the cache file used in gvm releases
 ```
 
 Examples:
@@ -33,6 +35,7 @@ Examples:
 gvm install 1.11.0               Install a specific version number
 gvm uninstall 1.11.0             Uninstall a specific version number
 gvm use 1.11.0                   Use a specific version number
+gvm releases 1.13                Will show only versions begin with 1.13
 ```
 
 ## Contributing
